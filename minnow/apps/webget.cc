@@ -1,0 +1,72 @@
+#include "socket.hh"
+
+#include <cstdlib>
+#include <iostream>
+#include <span>
+#include <string>
+
+using namespace std;
+
+void get_URL( const string& host, const string& path )
+{
+  // Create a TCP socket.
+  TCPSocket sock;
+
+  // Connect to the specified host.
+  sock.connect( Address( host, "http" ) );
+
+  // Send the HTTP request.
+  sock.write( "GET " + path + " HTTP/1.1\r\n" );
+  sock.write( "Host: " + host + "\r\n" );
+  sock.write( "Connection: close\r\n" );
+  sock.write( "\r\n" );
+
+  // Read the HTTP response.
+  string response;
+  while ( true ) {
+    string buf;
+    sock.read( buf );
+    if ( buf.size() == 0 ) {
+      break;
+    }
+    response += string( buf.data(), buf.size() ); // 将 buf 中的数据追加到 response 中
+  }
+
+  // Print the response to the standard output.
+  cout << response;
+
+  // Close the connection.
+  sock.close();
+}
+
+int main( int argc, char* argv[] )
+{
+  try {
+    if ( argc <= 0 ) {
+      abort(); // For sticklers: don't try to access argv[0] if argc <= 0.
+    }
+
+    auto args = span( argv, argc );
+
+    // The program takes two command-line arguments: the hostname and "path" part of the URL.
+    // Print the usage message unless there are these two arguments (plus the program name
+    // itself, so arg count = 3 in total).
+    if ( argc != 3 ) {
+      cerr << "Usage: " << args.front() << " HOST PATH\n";
+      cerr << "\tExample: " << args.front() << " stanford.edu /class/cs144\n";
+      return EXIT_FAILURE;
+    }
+
+    // Get the command-line arguments.
+    const string host { args[1] };
+    const string path { args[2] };
+
+    // Call the student-written function.
+    get_URL( host, path );
+  } catch ( const exception& e ) {
+    cerr << e.what() << "\n";
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
+}
